@@ -1,0 +1,56 @@
+package main;
+
+import javafx.application.Application;
+import javafx.geometry.Pos;
+import javafx.scene.Scene;
+import javafx.scene.control.Button;
+import javafx.scene.control.Label;
+import javafx.scene.control.ListView;
+import javafx.scene.layout.VBox;
+import javafx.stage.Stage;
+import main.DatabaseConnector;
+
+public class Main extends Application {
+    public static void main(String[] args) {
+        launch(args);
+    }
+
+    @Override
+    public void start(Stage primaryStage) {
+        DatabaseConnector dbConnector = new DatabaseConnector();
+
+        // Welcome message
+        Label welcomeLabel = new Label("Welcome to Sai's Supermarket\nHope you have a great time shopping");
+        welcomeLabel.setStyle("-fx-font-size: 18; -fx-font-weight: bold; -fx-text-alignment: center;");
+        VBox welcomeBox = new VBox(welcomeLabel);
+        welcomeBox.setAlignment(Pos.CENTER);
+
+        // Fetch button and product list
+        Button fetchBtn = new Button("Fetch Products");
+        ListView<String> listView = new ListView<>();
+
+        fetchBtn.setOnAction(e -> {
+            List<String> products = dbConnector.getProducts();
+            listView.getItems().setAll(products);
+        });
+
+        // Product list title
+        Label productListTitle = new Label("Product List");
+        productListTitle.setStyle("-fx-font-size: 16; -fx-font-weight: bold;");
+
+        // Product list card
+        VBox productListCard = new VBox(10);
+        productListCard.getChildren().addAll(productListTitle, listView);
+        productListCard.setStyle("-fx-border-width: 1; -fx-border-color: gray; -fx-padding: 10;");
+
+        // Main layout
+        VBox root = new VBox(20);
+        root.getChildren().addAll(welcomeBox, fetchBtn, productListCard);
+        root.setAlignment(Pos.CENTER);
+
+        Scene scene = new Scene(root, 300, 400);
+        primaryStage.setTitle("Supermarket App");
+        primaryStage.setScene(scene);
+        primaryStage.show();
+    }
+}

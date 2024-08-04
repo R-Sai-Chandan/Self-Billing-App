@@ -1,0 +1,101 @@
+package main;
+
+import javafx.application.Application;
+import javafx.geometry.Insets;
+import javafx.scene.Scene;
+import javafx.scene.control.Button;
+import javafx.scene.control.Label;
+import javafx.scene.layout.GridPane;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.Priority;
+import javafx.scene.layout.VBox;
+import javafx.scene.text.Text;
+import javafx.stage.Stage;
+import main.DatabaseConnector;
+import java.util.List;
+
+public class Main extends Application {
+    private DatabaseConnector dbConnector;
+    private Label selectedItemLabel;
+    private int selectedItemIndex = -1;
+    private List<String> products;
+
+    public static void main(String[] args) {
+        launch(args);
+    }
+
+    @Override
+    public void start(Stage primaryStage) {
+        dbConnector = new DatabaseConnector();
+        Text welcomeText = new Text("Welcome to Sai's Supermarket. Hope you have a great time shopping!");
+        Button fetchBtn = new Button("Fetch Products");
+        selectedItemLabel = new Label("No item selected");
+
+        // Buttons for adding and deleting quantity
+        Button addBtn = new Button("Add Quantity");
+        Button deleteBtn = new Button("Delete Quantity");
+
+        addBtn.setOnAction(e -> updateQuantity(1));
+        deleteBtn.setOnAction(e -> updateQuantity(-1));
+
+        // Layout for add and delete buttons
+        HBox buttonBox = new HBox(10, addBtn, deleteBtn);
+        buttonBox.setPadding(new Insets(10));
+        HBox.setHgrow(addBtn, Priority.ALWAYS);
+        HBox.setHgrow(deleteBtn, Priority.ALWAYS);
+
+        // Fetch button action
+        fetchBtn.setOnAction(e -> displayProducts(primaryStage));
+
+        VBox root = new VBox(10);
+        root.setPadding(new Insets(10));
+        root.getChildren().addAll(welcomeText, fetchBtn, selectedItemLabel, buttonBox);
+
+        Scene scene1 = new Scene(root, 300, 400);
+        primaryStage.setTitle("Supermarket App");
+        primaryStage.setScene(scene1);
+        primaryStage.setResizable(false); // Ensure the stage size remains constant
+        primaryStage.show();
+    }
+
+    private void displayProducts(Stage primaryStage) {
+        products = dbConnector.getProducts();
+        GridPane gridPane = new GridPane();
+        gridPane.setPadding(new Insets(10));
+        gridPane.setHgap(10);
+        gridPane.setVgap(10);
+
+        // Populate the GridPane with products
+        for (int i = 0; i < products.size(); i++) {
+            Label productLabel = new Label(products.get(i));
+            gridPane.add(productLabel, i % 3, i / 3);
+
+            int index = i;
+            productLabel.setOnMouseClicked(e -> {
+                selectedItemLabel.setText("Selected: " + products.get(index));
+                selectedItemIndex = index;
+            });
+        }
+
+        // Add the GridPane to the current scene
+        VBox root = (VBox) primaryStage.getScene().getRoot();
+        root.getChildren().removeIf(node -> node instanceof GridPane);
+        root.getChildren().add(gridPane);
+    }
+
+    private void updateQuantity(int amount) {
+        if (selectedItemIndex != -1) {
+            // Logic to update the quantity in the database
+            String selectedProduct = products.get(selectedItemIndex);
+            boolean success = dbConnector.updateProductQuantity(selectedProduct, amount);
+
+            if (success) {
+                selectedItemLabel.setText("Updated: " + selectedProduct + " by " + amount);
+            } else {
+                selectedItemLabel.setText("Failed to update: " + selectedProduct);
+            }
+        } else {
+            selectedItemLabel.setText("No item selected to update.");
+        }
+    }
+}

@@ -1,0 +1,146 @@
+package main;
+
+import javafx.animation.FadeTransition;
+import javafx.application.Application;
+import javafx.geometry.Pos;
+import javafx.scene.Scene;
+import javafx.scene.control.Button;
+import javafx.scene.control.Label;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
+import javafx.scene.layout.*;
+import javafx.scene.text.Font;
+import javafx.scene.text.Text;
+import javafx.stage.Stage;
+import javafx.util.Duration;
+
+import java.util.ArrayList;
+import java.util.List;
+
+public class Main extends Application {
+    private List<String> cart = new ArrayList<>();
+    private DatabaseConnector dbConnector = new DatabaseConnector();
+    private String selectedProduct = null;  // To store the currently selected product
+
+    public static void main(String[] args) {
+        launch(args);
+    }
+
+    @Override
+    public void start(Stage primaryStage) {
+        primaryStage.setFullScreen(true);
+
+        // Welcome scene
+        Text welcomeText = new Text("Welcome to Sai's Supermarket. Hope you have a great time shopping!");
+        welcomeText.setFont(Font.font("Jokerman", 24));
+        Button fetchBtn = new Button("Fetch Products");
+        VBox welcomeRoot = new VBox(20);
+        welcomeRoot.setAlignment(Pos.CENTER);
+        welcomeRoot.getChildren().addAll(welcomeText, fetchBtn);
+        Scene welcomeScene = new Scene(welcomeRoot, 800, 600);
+
+        // Product scene
+        HBox menuBar = new HBox(20);
+        menuBar.setAlignment(Pos.CENTER_LEFT);
+        Button productsBtn = new Button("Products");
+        Button basketBtn = new Button("Basket");
+        Button checkoutBtn = new Button("Checkout");
+        menuBar.getChildren().addAll(productsBtn, basketBtn, checkoutBtn);
+
+        GridPane productGrid = new GridPane();
+        productGrid.setHgap(20);
+        productGrid.setVgap(20);
+        productGrid.setAlignment(Pos.CENTER);
+
+        HBox bottomButtons = new HBox(20);
+        bottomButtons.setAlignment(Pos.CENTER_RIGHT);
+        Button addToCartBtn = new Button("Add to Cart");
+        Button removeFromCartBtn = new Button("Remove from Cart");
+        bottomButtons.getChildren().addAll(addToCartBtn, removeFromCartBtn);
+
+        VBox productRoot = new VBox(20);
+        productRoot.setAlignment(Pos.CENTER);
+        productRoot.getChildren().addAll(menuBar, productGrid, bottomButtons);
+        Scene productScene = new Scene(productRoot, 800, 600);
+
+        // Checkout scene
+        VBox checkoutRoot = new VBox(20);
+        checkoutRoot.setAlignment(Pos.CENTER);
+        Text checkoutText = new Text("Checkout");
+        checkoutText.setFont(Font.font("Jokerman", 24));
+        VBox cartItems = new VBox(10);
+        Button finalCheckoutBtn = new Button("Final Checkout");
+        checkoutRoot.getChildren().addAll(checkoutText, cartItems, finalCheckoutBtn);
+        Scene checkoutScene = new Scene(checkoutRoot, 800, 600);
+
+        primaryStage.setTitle("Supermarket App");
+        primaryStage.setScene(welcomeScene);
+        primaryStage.show();
+
+        // Event handlers
+        fetchBtn.setOnAction(e -> {
+            List<String> products = dbConnector.getProducts();
+            productGrid.getChildren().clear();
+            for (int i = 0; i < products.size(); i++) {
+                String[] productDetails = products.get(i).split(", ");
+                String productName = productDetails[1].split(": ")[1];
+                String productPrice = productDetails[2].split(": ")[1];
+
+                VBox productBox = new VBox(10);
+                productBox.setAlignment(Pos.CENTER);
+                Label productLabel = new Label(products.get(i));
+                ImageView productImage = new ImageView(new Image("file:path/to/image.jpg")); // Replace with actual image path
+                productImage.setFitWidth(100);
+                productImage.setFitHeight(100);
+                productBox.getChildren().addAll(productImage, productLabel);
+
+                productBox.setOnMouseClicked(event -> {
+                    selectedProduct = products.get(i);
+                    productBox.setStyle("-fx-border-color: blue; -fx-border-width: 2px;");
+                });
+
+                productGrid.add(productBox, i % 3, i / 3);
+            }
+            switchScene(primaryStage, productScene);
+        });
+
+        productsBtn.setOnAction(e -> switchScene(primaryStage, productScene));
+        basketBtn.setOnAction(e -> switchScene(primaryStage, checkoutScene));
+        checkoutBtn.setOnAction(e -> switchScene(primaryStage, checkoutScene));
+
+        addToCartBtn.setOnAction(e -> {
+            if (selectedProduct != null) {
+                cart.add(selectedProduct);
+                selectedProduct = null;  // Clear selection after adding to cart
+            }
+        });
+
+        removeFromCartBtn.setOnAction(e -> {
+            if (selectedProduct != null) {
+                cart.remove(selectedProduct);
+                selectedProduct = null;  // Clear selection after removing from cart
+            }
+        });
+
+        finalCheckoutBtn.setOnAction(e -> {
+            cartItems.getChildren().clear();
+            for (String item : cart) {
+                cartItems.getChildren().add(new Label(item));
+            }
+        });
+    }
+
+    private void switchScene(Stage stage, Scene scene) {
+        FadeTransition fadeOut = new FadeTransition(Duration.millis(500), stage.getScene().getRoot());
+        fadeOut.setFromValue(1.0);
+        fadeOut.setToValue(0.0);
+        fadeOut.setOnFinished(e -> {
+            stage.setScene(scene);
+            FadeTransition fadeIn = new FadeTransition(Duration.millis(500), scene.getRoot());
+            fadeIn.setFromValue(0.0);
+            fadeIn.setToValue(1.0);
+            fadeIn.play();
+        });
+        fadeOut.play();
+    }
+}
